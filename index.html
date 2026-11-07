@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Chat Duo Realtime</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.05);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.15);
+            border-radius: 10px;
+        }
+        /* Chat bubble tails */
+        .bubble-me::before {
+            content: '';
+            position: absolute;
+            right: -6px;
+            top: 10px;
+            border-width: 6px 0 6px 8px;
+            border-style: solid;
+            border-color: transparent transparent transparent #2563eb;
+        }
+        .bubble-other::before {
+            content: '';
+            position: absolute;
+            left: -6px;
+            top: 10px;
+            border-width: 6px 8px 6px 0;
+            border-style: solid;
+            border-color: transparent #ffffff transparent transparent;
+        }
+        .dark .bubble-other::before {
+            border-color: transparent #1f2937 transparent transparent;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 dark:bg-slate-900 h-screen flex flex-col justify-between overflow-hidden text-slate-800 dark:text-slate-100">
+
+    <!-- Header / Navbar -->
+    <header class="bg-white dark:bg-slate-800 shadow-sm border-b border-slate-200 dark:border-slate-700 px-4 py-3 flex items-center justify-between z-10">
+        <div class="flex items-center space-x-3">
+            <div class="relative">
+                <div id="userAvatar" class="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-lg shadow">
+                    ?
+                </div>
+                <span id="statusIndicator" class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-slate-800 rounded-full" title="Online"></span>
+            </div>
+            <div>
+                <h1 class="font-bold text-base leading-tight flex items-center gap-2">
+                    <span id="currentUserName">Pilih Profil</span>
+                    <button onclick="toggleProfileModal()" class="text-xs text-blue-500 hover:underline font-normal">(Ganti)</button>
+                </h1>
+                <p id="connectionText" class="text-xs text-slate-500 dark:text-slate-400">Terhubung ke Ruangan Duo</p>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex items-center space-x-2">
+            <button onclick="clearChatHistory()" class="p-2 text-slate-500 hover:text-red-500 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition" title="Hapus Riwayat Chat">
+                <i class="fa-solid fa-trash-can"></i>
+            </button>
+            <button onclick="toggleInfoModal()" class="p-2 text-slate-500 hover:text-blue-500 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition" title="Informasi & Cara Pakai">
+                <i class="fa-solid fa-circle-info"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Chat Messages Container -->
+    <main id="chatMessages" class="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50 dark:bg-slate-950 relative">
+        <!-- Initial Loading State -->
+        <div id="loadingState" class="flex flex-col items-center justify-center h-full text-slate-400 space-y-2">
+            <i class="fa-solid fa-spinner fa-spin text-3xl text-blue-500"></i>
+            <p class="text-sm">Memuat riwayat pesan...</p>
+        </div>
+
+        <!-- Empty Chat State -->
+        <div id="emptyState" class="hidden flex flex-col items-center justify-center h-full text-slate-400 space-y-3 text-center px-6">
+            <div class="w-16 h-16 bg-blue-50 dark:bg-slate-800 rounded-full flex items-center justify-center text-blue-500 text-2xl">
+                <i class="fa-regular fa-comments"></i>
+            </div>
+            <h3 class="font-semibold text-slate-700 dark:text-slate-300">Belum ada pesan</h3>
+            <p class="text-xs max-w-xs">Kirim pesan pertama Anda. Pastikan perangkat kedua juga memilih profilnya untuk mulai berbincang.</p>
+        </div>
+    </main>
+
+    <!-- Emoji Selector Bar (Hidden by default) -->
+    <div id="emojiPicker" class="hidden bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 p-2 flex gap-3 overflow-x-auto text-xl">
+        <button onclick="addEmoji('😊')" class="hover:scale-125 transition">😊</button>
+        <button onclick="addEmoji('😂')" class="hover:scale-125 transition">😂</button>
+        <button onclick="addEmoji('❤️')" class="hover:scale-125 transition">❤️</button>
+        <button onclick="addEmoji('👍')" class="hover:scale-125 transition">👍</button>
+        <button onclick="addEmoji('🙏')" class="hover:scale-125 transition">🙏</button>
+        <button onclick="addEmoji('🔥')" class="hover:scale-125 transition">🔥</button>
+        <button onclick="addEmoji('🎉')" class="hover:scale-125 transition">🎉</button>
+        <button onclick="addEmoji('🤣')" class="hover:scale-125 transition">🤣</button>
+        <button onclick="addEmoji('😍')" class="hover:scale-125 transition">😍</button>
+        <button onclick="addEmoji('😭')" class="hover:scale-125 transition">😭</button>
+    </div>
+
+    <!-- Input Area -->
+    <footer class="bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 p-3 flex items-center space-x-2 z-10">
+        <button onclick="toggleEmojiPicker()" class="p-2 text-slate-500 hover:text-blue-500 dark:text-slate-400 rounded-full transition" title="Pilih Emoji">
+            <i class="fa-regular fa-face-smile text-xl"></i>
+        </button>
+
+        <form id="chatForm" onsubmit="sendMessage(event)" class="flex-1 flex items-center gap-2">
+            <input 
+                type="text" 
+                id="messageInput" 
+                placeholder="Ketik pesan..." 
+                autocomplete="off"
+                class="w-full bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 px-4 py-2.5 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+            >
+            <button 
+                type="submit" 
+                id="sendBtn" 
+                class="bg-blue-600 hover:bg-blue-700 text-white w-10 h-10 rounded-full flex items-center justify-center shadow-md active:scale-95 transition disabled:opacity-50"
+            >
+                <i class="fa-solid fa-paper-plane text-sm"></i>
+            </button>
+        </form>
+    </footer>
+
+    <!-- Profile Selector Modal -->
+    <div id="profileModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 transition-opacity">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4">
+            <div class="text-center">
+                <div class="w-12 h-12 bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center mx-auto mb-3 text-xl">
+                    <i class="fa-solid fa-users"></i>
+                </div>
+                <h2 class="text-lg font-bold">Pilih Identitas Perangkat</h2>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Pilih peran HP ini agar pesan tidak tertukar saat saling mengirim pesan.</p>
+            </div>
+
+            <div class="space-y-3 pt-2">
+                <button onclick="selectProfile('Pengguna A (HP 1)', 'A')" class="w-full flex items-center justify-between p-3.5 border-2 border-slate-200 dark:border-slate-700 rounded-xl hover:border-blue-500 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-slate-700/50 transition group">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-sm">A</div>
+                        <span class="font-medium text-sm group-hover:text-blue-600 dark:group-hover:text-blue-400">Pengguna A (HP 1)</span>
+                    </div>
+                    <i class="fa-solid fa-chevron-right text-xs text-slate-400 group-hover:text-blue-500"></i>
+                </button>
+
+                <button onclick="selectProfile('Pengguna B (HP 2)', 'B')" class="w-full flex items-center justify-between p-3.5 border-2 border-slate-200 dark:border-slate-700 rounded-xl hover:border-emerald-500 dark:hover:border-emerald-500 hover:bg-emerald-50 dark:hover:bg-slate-700/50 transition group">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-sm">B</div>
+                        <span class="font-medium text-sm group-hover:text-emerald-600 dark:group-hover:text-emerald-400">Pengguna B (HP 2)</span>
+                    </div>
+                    <i class="fa-solid fa-chevron-right text-xs text-slate-400 group-hover:text-emerald-500"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Info / Setup Modal -->
+    <div id="infoModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b border-slate-200 dark:border-slate-700 pb-3">
+                <h3 class="font-bold text-base flex items-center gap-2">
+                    <i class="fa-solid fa-circle-info text-blue-500"></i> Informasi & Cara Pakai
+                </h3>
+                <button onclick="toggleInfoModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div class="space-y-3 text-xs leading-relaxed text-slate-600 dark:text-slate-300">
+                <p>Aplikasi ini dirancang khusus untuk <strong>chat 2 orang secara real-time</strong> menggunakan kredensial Firebase yang sama di dua perangkat terpisah (Wi-Fi atau Data Seluler).</p>
+                
+                <div class="bg-slate-100 dark:bg-slate-700/50 p-3 rounded-lg space-y-1">
+                    <p class="font-semibold text-slate-800 dark:text-slate-100">Panduan Penggunaan HP:</p>
+                    <ol class="list-decimal list-inside space-y-1">
+                        <li>Buka halaman ini di <strong>HP 1</strong> dan pilih <strong>Pengguna A</strong>.</li>
+                        <li>Buka halaman ini di <strong>HP 2</strong> dan pilih <strong>Pengguna B</strong>.</li>
+                        <li>Ketik pesan dan kirim. Pesan akan tersinkron otomatis secara instan.</li>
+                    </ol>
+                </div>
+
+                <div class="border-t border-slate-200 dark:border-slate-700 pt-3">
+                    <p class="font-semibold text-slate-800 dark:text-slate-100 mb-1">Fitur Utama:</p>
+                    <ul class="list-disc list-inside space-y-1">
+                        <li>Dukungan jaringan Wi-Fi dan Kuota Seluler 4G/5G.</li>
+                        <li>Riwayat tersimpan permanen di cloud.</li>
+                        <li>Dapat diakses kembali kapan saja dari HP mana saja.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <button onclick="toggleInfoModal()" class="w-full bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 font-medium py-2 rounded-xl text-xs transition">
+                Tutup
+            </button>
+        </div>
+    </div>
+
+    <!-- Firebase Modular SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, serverTimestamp, writeBatch, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Firebase Configuration setup
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'duo-chat-app';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' 
+            ? JSON.parse(__firebase_config) 
+            : {
+                apiKey: "DEMO_KEY",
+                authDomain: "demo.firebaseapp.com",
+                projectId: "demo-project",
+                storageBucket: "demo.appspot.com",
+                messagingSenderId: "123456789",
+                appId: "1:123456789:web:demo"
+            };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // App States
+        let currentUser = null;
+        let myProfile = localStorage.getItem('duo_chat_profile') || '';
+        let myRoleTag = localStorage.getItem('duo_chat_role') || '';
+        let unsubscribeSnapshot = null;
+
+        // Element Selectors
+        const profileModal = document.getElementById('profileModal');
+        const infoModal = document.getElementById('infoModal');
+        const currentUserNameEl = document.getElementById('currentUserName');
+        const userAvatarEl = document.getElementById('userAvatar');
+        const chatMessagesEl = document.getElementById('chatMessages');
+        const loadingStateEl = document.getElementById('loadingState');
+        const emptyStateEl = document.getElementById('emptyState');
+        const messageInput = document.getElementById('messageInput');
+        const emojiPicker = document.getElementById('emojiPicker');
+
+        // Check Network Status
+        window.addEventListener('online', updateNetworkStatus);
+        window.addEventListener('offline', updateNetworkStatus);
+
+        function updateNetworkStatus() {
+            const statusIndicator = document.getElementById('statusIndicator');
+            if (navigator.onLine) {
+                statusIndicator.className = "absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-slate-800 rounded-full";
+                statusIndicator.title = "Online (Terhubung)";
+            } else {
+                statusIndicator.className = "absolute bottom-0 right-0 w-3 h-3 bg-red-500 border-2 border-white dark:border-slate-800 rounded-full";
+                statusIndicator.title = "Offline (Tidak ada koneksi)";
+            }
+        }
+
+        // Auto Authenticate User
+        async function initAuth() {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (err) {
+                console.error("Auth Error:", err);
+            }
+        }
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+                if (!myProfile) {
+                    profileModal.classList.remove('hidden');
+                } else {
+                    updateProfileUI();
+                    listenToMessages();
+                }
+            }
+        });
+
+        // Handle Profile Selection
+        window.selectProfile = function(name, role) {
+            myProfile = name;
+            myRoleTag = role;
+            localStorage.setItem('duo_chat_profile', name);
+            localStorage.setItem('duo_chat_role', role);
+            
+            profileModal.classList.add('hidden');
+            updateProfileUI();
+
+            if (currentUser) {
+                listenToMessages();
+            }
+        };
+
+        window.toggleProfileModal = function() {
+            profileModal.classList.toggle('hidden');
+        };
+
+        window.toggleInfoModal = function() {
+            infoModal.classList.toggle('hidden');
+        };
+
+        function updateProfileUI() {
+            currentUserNameEl.textContent = myProfile;
+            userAvatarEl.textContent = myRoleTag || '?';
+            userAvatarEl.className = `w-10 h-10 rounded-full text-white flex items-center justify-center font-bold text-lg shadow ${
+                myRoleTag === 'A' ? 'bg-blue-600' : 'bg-emerald-600'
+            }`;
+        }
+
+        // Listen for Realtime Messages (RULE 1 & RULE 2 compliant)
+        function listenToMessages() {
+            if (!currentUser) return;
+
+            // Strict collection path for shared public chat
+            const messagesRef = collection(db, 'artifacts', appId, 'public', 'data', 'messages');
+
+            // Unsubscribe existing listener if any
+            if (unsubscribeSnapshot) unsubscribeSnapshot();
+
+            unsubscribeSnapshot = onSnapshot(messagesRef, (snapshot) => {
+                loadingStateEl.classList.add('hidden');
+
+                const docs = [];
+                snapshot.forEach((doc) => {
+                    docs.push({ id: doc.id, ...doc.data() });
+                });
+
+                // Client-side sorting by timestamp (RULE 2: avoids complex query indexes)
+                docs.sort((a, b) => {
+                    const timeA = a.timestamp?.toMillis ? a.timestamp.toMillis() : (a.createdAt || 0);
+                    const timeB = b.timestamp?.toMillis ? b.timestamp.toMillis() : (b.createdAt || 0);
+                    return timeA - timeB;
+                });
+
+                renderMessages(docs);
+            }, (error) => {
+                console.error("Firestore Listen Error: ", error);
+                loadingStateEl.innerHTML = `<p class="text-red-500 text-xs">Gagal memuat pesan. Periksa koneksi Anda.</p>`;
+            });
+        }
+
+        // Render Messages in UI
+        function renderMessages(messages) {
+            // Remove previous rendered messages except states
+            const messageNodes = chatMessagesEl.querySelectorAll('.msg-group');
+            messageNodes.forEach(node => node.remove());
+
+            if (messages.length === 0) {
+                emptyStateEl.classList.remove('hidden');
+                return;
+            }
+
+            emptyStateEl.classList.add('hidden');
+
+            messages.forEach((msg) => {
+                const isMe = msg.senderRole === myRoleTag;
+                const timeString = msg.timestamp?.toDate 
+                    ? msg.timestamp.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                    : new Date(msg.createdAt || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                const wrapper = document.createElement('div');
+                wrapper.className = `flex flex-col ${isMe ? 'items-end' : 'items-start'} msg-group`;
+
+                wrapper.innerHTML = `
+                    <div class="text-[10px] text-slate-400 mb-1 px-1 flex items-center gap-1">
+                        <span>${msg.senderName || 'Pengguna'}</span>
+                    </div>
+                    <div class="relative max-w-[80%] md:max-w-[65%] px-4 py-2.5 rounded-2xl shadow-sm text-sm ${
+                        isMe 
+                            ? 'bg-blue-600 text-white rounded-tr-none bubble-me' 
+                            : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-tl-none bubble-other border border-slate-100 dark:border-slate-700'
+                    }">
+                        <p class="break-words whitespace-pre-wrap leading-relaxed">${escapeHTML(msg.text)}</p>
+                        <div class="text-[9px] mt-1 text-right opacity-70 ${isMe ? 'text-blue-100' : 'text-slate-400'}">
+                            ${timeString}
+                        </div>
+                    </div>
+                `;
+
+                chatMessagesEl.appendChild(wrapper);
+            });
+
+            // Auto-scroll to bottom
+            chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+        }
+
+        // Send Message
+        window.sendMessage = async function(e) {
+            e.preventDefault();
+            const text = messageInput.value.trim();
+            if (!text || !currentUser) return;
+
+            if (!myRoleTag) {
+                profileModal.classList.remove('hidden');
+                return;
+            }
+
+            messageInput.value = '';
+            emojiPicker.classList.add('hidden');
+
+            try {
+                const messagesRef = collection(db, 'artifacts', appId, 'public', 'data', 'messages');
+                await addDoc(messagesRef, {
+                    text: text,
+                    senderName: myProfile,
+                    senderRole: myRoleTag,
+                    userId: currentUser.uid,
+                    timestamp: serverTimestamp(),
+                    createdAt: Date.now()
+                });
+            } catch (err) {
+                console.error("Error sending message:", err);
+                alert("Gagal mengirim pesan. Silakan coba lagi.");
+            }
+        };
+
+        // Clear Chat History
+        window.clearChatHistory = async function() {
+            if (!currentUser) return;
+            if (!confirm("Apakah Anda yakin ingin menghapus seluruh riwayat percakapan?")) return;
+
+            try {
+                const messagesRef = collection(db, 'artifacts', appId, 'public', 'data', 'messages');
+                const snapshot = await getDocs(messagesRef);
+                
+                const batch = writeBatch(db);
+                snapshot.forEach((doc) => {
+                    batch.delete(doc.ref);
+                });
+
+                await batch.commit();
+            } catch (err) {
+                console.error("Error clearing chat:", err);
+            }
+        };
+
+        // Emoji Picker Helpers
+        window.toggleEmojiPicker = function() {
+            emojiPicker.classList.toggle('hidden');
+        };
+
+        window.addEmoji = function(emoji) {
+            messageInput.value += emoji;
+            messageInput.focus();
+        };
+
+        // Utility: Sanitization
+        function escapeHTML(str) {
+            return str.replace(/[&<>'"]/g, 
+                tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+            );
+        }
+
+        // App Initialization
+        updateNetworkStatus();
+        initAuth();
+    </script>
+</body>
+</html>
